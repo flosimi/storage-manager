@@ -1,0 +1,17 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Desktop app (Tauri + React)
+node_modules/
+dist/
+app/src-tauri/target/
+app/src-tauri/gen/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
