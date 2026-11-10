@@ -1,0 +1,16 @@
+[package]
+name = "storage-manager-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+storage-manager-core = { version = "0.1.0", path = "../core" }
+
+[lints]
+workspace = true
