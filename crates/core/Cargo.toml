@@ -1,0 +1,19 @@
+[package]
+name = "storage-manager-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+sysinfo = "0.40.1"
+thiserror = "2.0.21"
+walkdir = "2.5.0"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"
