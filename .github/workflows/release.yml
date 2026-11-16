@@ -1,0 +1,58 @@
+name: Release
+
+# Runs when a version tag such as v0.1.0 is pushed.
+on:
+  push:
+    tags: ["v*"]
+
+# Needed to create the GitHub Release and attach files to it.
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Build and publish (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Stop early if the tag and the version in Cargo.toml disagree.
+      - name: Check tag matches Cargo.toml version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          if [ "$tag" != "$version" ]; then
+            echo "Tag v$tag does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Build
+        run: cargo build --release --locked -p storage-manager-cli
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $name = "storage-manager-${{ github.ref_name }}-windows-x64"
+          New-Item -ItemType Directory -Path $name | Out-Null
+          Copy-Item target/release/storage-manager-cli.exe "$name/storage-manager.exe"
+          Copy-Item LICENSE, README.md $name
+          Compress-Archive -Path $name -DestinationPath "$name.zip"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -Encoding ascii "$name.zip.sha256"
+          "ASSET=$name.zip" | Out-File -Append -Encoding ascii $env:GITHUB_ENV
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
+          generate_release_notes: true
