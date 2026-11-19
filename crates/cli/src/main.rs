@@ -140,7 +140,7 @@ fn run(cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
                 result.skipped
             );
             println!("\nBy folder:");
-            for e in result.children.iter().take(15) {
+            for e in result.children.iter().take(*top) {
                 let marker = if e.is_dir { "/" } else { "" };
                 println!("  {:>10}  {}{}", format_bytes(e.size), e.name, marker);
             }
