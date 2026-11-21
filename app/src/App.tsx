@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
@@ -35,6 +35,11 @@ function App() {
   async function refreshRam() {
     setRam(await invoke<RamSnapshot>("get_ram"));
   }
+  useEffect(() => {
+  refreshRam();
+  const id = setInterval(refreshRam, 1000);
+  return () => clearInterval(id);
+}, []);
 
   return (
     <main className="container">
