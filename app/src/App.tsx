@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
@@ -10,6 +9,7 @@ type RamSnapshot = {
   swap_total: number;
   swap_used: number;
 };
+
 type ProcessMemory = { pid: number; name: string; memory_bytes: number };
 
 function formatBytes(bytes: number): string {
@@ -22,77 +22,56 @@ function formatBytes(bytes: number): string {
   }
   return unit === 0 ? `${bytes} B` : `${value.toFixed(1)} ${units[unit]}`;
 }
+function ramLevel(percent: number): string{
+  if (percent >90) return "critical";
+  if (percent >70) return "warn";
+  return "ok";
+}
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
   const [ram, setRam] = useState<RamSnapshot | null>(null);
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const [processes, setProcesses] = useState<ProcessMemory[]>([]);
 
   async function refreshRam() {
     setRam(await invoke<RamSnapshot>("get_ram"));
   }
-  const [processes, setProcesses] = useState<ProcessMemory[]>([]);
 
-async function refreshProcesses() {
-  setProcesses(
-    await invoke<ProcessMemory[]>("get_top_processes", { limit: 8 }),
-  );
-}
+  async function refreshProcesses() {
+    setProcesses(
+      await invoke<ProcessMemory[]>("get_top_processes", { limit: 8 }),
+    );
+  }
+
   useEffect(() => {
-  const tick = () => {
-    refreshRam();
-    refreshProcesses();
-  };
-  tick();
-  const id = setInterval(tick, 1000);
-  return () => clearInterval(id);
-}, []);
+    const tick = () => {
+      refreshRam();
+      refreshProcesses();
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const ramPercent = ram ? (ram.used / ram.total) * 100 : 0;
 
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+      <h1>Storage Manager</h1>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-
-      <button onClick={refreshRam}>Refresh RAM</button>
       {ram && (
-        <p>
-          RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
-          {((ram.used / ram.total) * 100).toFixed(0)}%)
-        </p>
-      )}
+  <div className="ram">
+    <p>
+      RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
+      {ramPercent.toFixed(0)}%)
+    </p>
+    <div className="bar">
+      <div
+        className={`bar-fill ${ramLevel(ramPercent)}`}
+        style={{ width: `${ramPercent}%` }}
+      />
+    </div>
+  </div>
+)}
+
       <table>
         <thead>
           <tr>
