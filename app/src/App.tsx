@@ -22,6 +22,11 @@ function formatBytes(bytes: number): string {
   }
   return unit === 0 ? `${bytes} B` : `${value.toFixed(1)} ${units[unit]}`;
 }
+function ramLevel(percent: number): string{
+  if (percent >90) return "critical";
+  if (percent >70) return "warn";
+  return "ok";
+}
 
 function App() {
   const [ram, setRam] = useState<RamSnapshot | null>(null);
@@ -46,17 +51,26 @@ function App() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+  const ramPercent = ram ? (ram.used / ram.total) * 100 : 0;
 
   return (
     <main className="container">
       <h1>Storage Manager</h1>
 
       {ram && (
-        <p>
-          RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
-          {((ram.used / ram.total) * 100).toFixed(0)}%)
-        </p>
-      )}
+  <div className="ram">
+    <p>
+      RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
+      {ramPercent.toFixed(0)}%)
+    </p>
+    <div className="bar">
+      <div
+        className={`bar-fill ${ramLevel(ramPercent)}`}
+        style={{ width: `${ramPercent}%` }}
+      />
+    </div>
+  </div>
+)}
 
       <table>
         <thead>
