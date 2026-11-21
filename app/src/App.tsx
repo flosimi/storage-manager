@@ -10,6 +10,7 @@ type RamSnapshot = {
   swap_total: number;
   swap_used: number;
 };
+type ProcessMemory = { pid: number; name: string; memory_bytes: number };
 
 function formatBytes(bytes: number): string {
   const units = ["B", "KiB", "MiB", "GiB", "TiB"];
@@ -35,9 +36,20 @@ function App() {
   async function refreshRam() {
     setRam(await invoke<RamSnapshot>("get_ram"));
   }
+  const [processes, setProcesses] = useState<ProcessMemory[]>([]);
+
+async function refreshProcesses() {
+  setProcesses(
+    await invoke<ProcessMemory[]>("get_top_processes", { limit: 8 }),
+  );
+}
   useEffect(() => {
-  refreshRam();
-  const id = setInterval(refreshRam, 1000);
+  const tick = () => {
+    refreshRam();
+    refreshProcesses();
+  };
+  tick();
+  const id = setInterval(tick, 1000);
   return () => clearInterval(id);
 }, []);
 
@@ -81,6 +93,24 @@ function App() {
           {((ram.used / ram.total) * 100).toFixed(0)}%)
         </p>
       )}
+      <table>
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>PID</th>
+            <th>Memory</th>
+          </tr>
+        </thead>
+        <tbody>
+          {processes.map((p) => (
+            <tr key={p.pid}>
+              <td>{p.name}</td>
+              <td>{p.pid}</td>
+              <td>{formatBytes(p.memory_bytes)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </main>
   );
 }
