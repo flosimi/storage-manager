@@ -10,6 +10,16 @@ type RamSnapshot = {
   swap_used: number;
 };
 
+type DiskInfo = {
+  name: string;
+  mount_point: string;
+  file_system: string;
+  kind: "ssd" | "hdd" | "unknown";
+  total: number;
+  available: number;
+  removable: boolean;
+};
+
 type ProcessMemory = { pid: number; name: string; memory_bytes: number };
 
 function formatBytes(bytes: number): string {
@@ -22,15 +32,17 @@ function formatBytes(bytes: number): string {
   }
   return unit === 0 ? `${bytes} B` : `${value.toFixed(1)} ${units[unit]}`;
 }
-function ramLevel(percent: number): string{
-  if (percent >90) return "critical";
-  if (percent >70) return "warn";
+
+function usageLevel(percent: number): string {
+  if (percent > 90) return "critical";
+  if (percent > 70) return "warn";
   return "ok";
 }
 
 function App() {
   const [ram, setRam] = useState<RamSnapshot | null>(null);
   const [processes, setProcesses] = useState<ProcessMemory[]>([]);
+  const [disks, setDisks] = useState<DiskInfo[]>([]);
 
   async function refreshRam() {
     setRam(await invoke<RamSnapshot>("get_ram"));
@@ -42,6 +54,10 @@ function App() {
     );
   }
 
+  async function refreshDisks() {
+    setDisks(await invoke<DiskInfo[]>("get_disks"));
+  }
+
   useEffect(() => {
     const tick = () => {
       refreshRam();
@@ -51,6 +67,13 @@ function App() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    refreshDisks();
+    const id = setInterval(refreshDisks, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   const ramPercent = ram ? (ram.used / ram.total) * 100 : 0;
 
   return (
@@ -58,19 +81,42 @@ function App() {
       <h1>Storage Manager</h1>
 
       {ram && (
-  <div className="ram">
-    <p>
-      RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
-      {ramPercent.toFixed(0)}%)
-    </p>
-    <div className="bar">
-      <div
-        className={`bar-fill ${ramLevel(ramPercent)}`}
-        style={{ width: `${ramPercent}%` }}
-      />
-    </div>
-  </div>
-)}
+        <div className="ram">
+          <p>
+            RAM: {formatBytes(ram.used)} used of {formatBytes(ram.total)} (
+            {ramPercent.toFixed(0)}%)
+          </p>
+          <div className="bar">
+            <div
+              className={`bar-fill ${usageLevel(ramPercent)}`}
+              style={{ width: `${ramPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <h2>Disks</h2>
+      {disks
+        .filter((d) => d.total > 0)
+        .map((d) => {
+          const used = d.total - d.available;
+          const percent = (used / d.total) * 100;
+          return (
+            <div className="disk" key={d.mount_point}>
+              <p>
+                {d.mount_point} ({d.kind.toUpperCase()}, {d.file_system}):{" "}
+                {formatBytes(used)} used of {formatBytes(d.total)} (
+                {percent.toFixed(0)}%), {formatBytes(d.available)} free
+              </p>
+              <div className="bar">
+                <div
+                  className={`bar-fill ${usageLevel(percent)}`}
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
 
       <table>
         <thead>

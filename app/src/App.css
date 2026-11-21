@@ -150,3 +150,8 @@ th, td {
 }
 
 th:last-child, td:last-child { text-align: right; }
+.disk {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 1rem;
+}
