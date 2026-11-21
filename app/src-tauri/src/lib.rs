@@ -1,4 +1,10 @@
 use storage_manager_core::ram::{ProcessMemory, RamMonitor, RamSnapshot};
+use storage_manager_core::disk::{DiskInfo, list_disks};
+
+#[tauri::command]
+fn get_disks() -> Result<Vec<DiskInfo>, String> {
+    list_disks().map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 fn get_top_processes(limit: usize) -> Result<Vec<ProcessMemory>, String> {
@@ -14,7 +20,7 @@ fn get_ram() -> Result<RamSnapshot, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_ram, get_top_processes])
+        .invoke_handler(tauri::generate_handler![get_ram, get_top_processes, get_disks])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
